@@ -20,6 +20,9 @@ my %CONFIG;
 # Кеш открытых соединений с БД
 my %DBH;
 
+# Время последнего ping
+my %PING;
+
 # Генератор SQL-запросов и JSON-сериализатор
 my $SQL = SQL::Abstract->new();
 my $JSON = JSON->new->ascii;
@@ -63,7 +66,7 @@ sub connect {
     croak "Can't connect to database: Invalid shortcut '$dbname'"
         unless exists $CONFIG{$dbname};
 
-    if ( !defined $DBH{$dbname} || !$DBH{$dbname}->ping() ) {
+    if ( !defined $DBH{$dbname} || !$self->ping($dbname) ) {
         my ($url, $user, $pass, $attr) = @{$CONFIG{$dbname}};
         $attr ||= {};
 
@@ -77,6 +80,15 @@ sub connect {
     }
 
     return $DBH{$dbname};
+}
+
+sub ping {
+    my ($self, $dbname) = @_;
+    return 1 if $PING{$dbname} && $PING{$dbname} == time;
+    return 0 if !$DBH{$dbname}->ping();
+
+    $PING{$dbname} = time;
+    return 1;
 }
 
 sub disconnect {
