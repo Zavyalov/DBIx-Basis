@@ -163,7 +163,12 @@ sub update {
     croak "Condition required"
         unless defined $cond;
 
-    return $self->new( DBIx::Basis::Handle->update_object($basis->deflate($self), $cond, $basis, $columns) );
+    if(defined wantarray) {
+        return $self->new( DBIx::Basis::Handle->update_object($basis->deflate($self), $cond, $basis, $columns) );
+    }
+
+    DBIx::Basis::Handle->update_object($basis->deflate($self), $cond, $basis, $columns);
+    return;
 }
 
 # Удаляет объект из БД по переданному условию (см. SQL::Abstract).

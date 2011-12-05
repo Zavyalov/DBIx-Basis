@@ -188,8 +188,10 @@ sub update_object {
         $@ = $dbh->errstr;
         return undef;
     }
-
-    return $self->select_object($cond, $basis)->[0];
+    if(defined wantarray) {
+        return $self->select_object($cond, $basis)->[0];
+    }
+    return;
 }
 
 sub insert_object {
