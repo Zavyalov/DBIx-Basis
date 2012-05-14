@@ -267,11 +267,12 @@ sub _row {
 
     my %rowcols = map { $_ => 1 } ( $columns ? @$columns : $basis->columns );
     for my $col ( $basis->columns ) {
-        next unless $rowcols{$col};
-        $row->{$col} = $basis->get_column( $obj, $col );
-        if ( ref $row->{$col} && reftype $row->{$col} eq 'SCALAR' ) {
-            $basis->set_column( $obj, $col, ${$row->{$col}} );
+        my $val = $basis->get_column( $obj, $col );
+        if ( ref $val && reftype $val eq 'SCALAR' ) {
+            $basis->set_column( $obj, $col, $$val );
         }
+        next unless $rowcols{$col};
+        $row->{$col} = $val;
     }
 
     $row->{data_basis} = $basis->name;
