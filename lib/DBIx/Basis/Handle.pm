@@ -267,17 +267,20 @@ sub _row {
 
     my %rowcols = map { $_ => 1 } ( $columns ? @$columns : $basis->columns );
     for my $col ( $basis->columns ) {
-        my $val = $basis->get_column( $obj, $col );
-        if ( ref $val && reftype $val eq 'SCALAR' ) {
-            $basis->set_column( $obj, $col, $$val );
-        }
         next unless $rowcols{$col};
+        my $val = $basis->get_column( $obj, $col );
+        $basis->set_column( $obj, $col, $$val ) if ref $val && reftype $val eq 'SCALAR';
         $row->{$col} = $val;
     }
 
-    $row->{data_basis} = $basis->name;
-    $row->{data} = eval { $JSON->encode($obj) };
-    die "Can't serialize object: $@" if $@;
+    if ( !$columns ) {
+        $row->{data_basis} = $basis->name;
+        $row->{data} = eval { $JSON->encode($obj) };
+        die "Can't serialize object: $@" if $@;
+    }
+    elsif ( !keys %$row ) {
+        die "Can't serialize object: row is empty";
+    }
 
     return $row;
 }
