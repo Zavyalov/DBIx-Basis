@@ -14,6 +14,8 @@ use strict;
 use warnings;
 no warnings 'once';
 
+use constant DEBUG => $ENV{DBIX_BASIS_DEBUG} || 0;
+
 # Источники данных
 my %CONFIG;
 
@@ -265,8 +267,12 @@ sub _row {
 
     $basis ||= DBIx::Basis->basis( $obj->{data_basis} );
 
-    my %rowcols = map { $_ => 1 } ( $columns ? @$columns : $basis->columns );
-    for my $col ( $basis->columns ) {
+    my %allcols = map { $_ => 1 } $basis->columns;
+    croak "Can't serialize object: column not in the basis"
+        if $columns && grep { !$allcols{$_} } @$columns;
+
+    my %rowcols = $columns ? map { $_ => 1 } @$columns : %allcols;
+    for my $col ( keys %allcols ) {
         next unless $rowcols{$col};
         my $val = $basis->get_column( $obj, $col );
         $basis->set_column( $obj, $col, $$val ) if ref $val && reftype $val eq 'SCALAR';
@@ -276,7 +282,7 @@ sub _row {
     if ( !$columns ) {
         $row->{data_basis} = $basis->name;
         $row->{data} = eval { $JSON->encode($obj) };
-        die "Can't serialize object: $@" if $@;
+        die "Can't serialize object: $@" . ( DEBUG ? "\nObj: " . Dumper($obj) : '' ) if $@;
     }
     elsif ( !keys %$row ) {
         die "Can't serialize object: row is empty";
@@ -295,13 +301,17 @@ sub _object {
 
     $basis ||= DBIx::Basis->basis( $row->{data_basis} );
 
+    my %allcols = map { $_ => 1 } $basis->columns;
+    croak "Can't deserialize object: column not in the basis"
+        if $columns && grep { !$allcols{$_} } @$columns;
+
     if ( defined $row->{data} ) {
         $obj = eval { $JSON->decode( $row->{data} ) };
-        die "Can't deserialize object: " . Dumper($row) . ": $@" if $@;
+        die "Can't deserialize object: $@" . ( DEBUG ? "\nRow: " . Dumper($row) : '' ) if $@;
     }
 
-    my %rowcols = map { $_ => 1 } ( $columns ? @$columns : $basis->columns );
-    for my $col ( $basis->columns ) {
+    my %rowcols = $columns ? map { $_ => 1 } @$columns : %allcols;
+    for my $col ( keys %allcols ) {
         next unless $rowcols{$col};
         $basis->set_column( $obj, $col, $row->{$col} );
     }
