@@ -191,7 +191,7 @@ sub update_object {
         return undef;
     }
     if(defined wantarray) {
-        return $self->select_object($cond, $basis)->[0];
+        return $self->select_object($cond, $basis, $columns)->[0];
     }
     return;
 }
