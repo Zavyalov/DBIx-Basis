@@ -207,13 +207,20 @@ sub insert {
     croak "Object basis required"
         unless defined $basis;
 
+    croak "Can't return inserted for non-primary basises" if defined wantarray && scalar @{$basis->primary} < 1;
+
     unless ( defined $data ) {
         $data = ref $self ? $basis->deflate($self) : {};
     }
 
     $basis->set_defaults($data);
 
-    return $self->new( DBIx::Basis::Handle->insert_object($data, $basis) );
+    if(defined wantarray) {
+        return $self->new( DBIx::Basis::Handle->insert_object($data, $basis) );
+    }
+
+    DBIx::Basis::Handle->insert_object($data, $basis);
+    return;
 }
 
 # Заменяет/вставляет новую запись в БД.

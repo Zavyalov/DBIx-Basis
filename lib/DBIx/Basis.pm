@@ -7,7 +7,7 @@ use Module::Find;
 
 use DBIx::Basis::Object;
 
-our $VERSION = '1.4.1';
+our $VERSION = '1.5';
 
 use strict;
 use warnings;
@@ -407,6 +407,24 @@ sub _set {
 sub set_column {
     my ($basis, $obj, $col, $val) = @_;
     return _set( $obj, $BASIS{$basis}{column}{$col}, $val );
+}
+
+# Удаляет узел по заданному пути
+sub _del {
+    my ($self, $path) = @_;
+    my $node;
+
+    for ( my $i = 0, $node = $self; defined $node && $i < $#$path; $i++ ) {
+        my $p = $path->[$i];
+        $node = $node->{$p} = ( exists $node->{$p} ) ? $node->{$p} : {};
+    }
+
+    return delete $node->{$path->[-1]};
+}
+
+sub del_column {
+    my ($basis, $obj, $col) = @_;
+    return _del( $obj, $BASIS{$basis}{column}{$col} );
 }
 
 1;

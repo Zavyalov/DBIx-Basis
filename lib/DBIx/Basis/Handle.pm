@@ -206,9 +206,13 @@ sub insert_object {
 
     $basis ||= DBIx::Basis->basis( $data->{data_basis} );
 
+    my @primary   = $basis->primary;
+    my $data_cond = @primary ? { map { $_ => $data->{$_} } @primary } : {};
+    croak "Can't return inserted for non-primary basises" if defined wantarray && scalar @primary < 1;
+
     # Сериализация объекта в запись БД
     my $row = _row($data, defined $data->{data_basis} ? () : $basis);
-    for ($basis->primary) {
+    for (@primary) {
         delete $row->{$_} unless defined $row->{$_};
     }
 
@@ -220,14 +224,13 @@ sub insert_object {
         $@ = $dbh->errstr;
         return undef;
     }
+    return unless defined wantarray;
 
     # Автозаполнение для 'auto_increment'-ных первичных ключей
-    my @primary = $basis->primary;
-    $basis->set_column( $data, @primary, $dbh->last_insert_id(undef, undef, $basis->table, undef) )
+    $basis->set_column( $data_cond, @primary, $dbh->last_insert_id(undef, undef, $basis->table, undef) )
         if @primary == 1 && !defined $basis->get_column( $data, @primary );
 
-    return $data if @primary < 1;
-    return $self->select_object({ map { $_ => $data->{$_} } @primary }, $basis)->[0];
+    return $self->select_object($data_cond, $basis)->[0];
 }
 
 sub delete_object {
@@ -274,8 +277,7 @@ sub _row {
     my %rowcols = $columns ? map { $_ => 1 } @$columns : %allcols;
     for my $col ( keys %allcols ) {
         next unless $rowcols{$col};
-        my $val = $basis->get_column( $obj, $col );
-        $basis->set_column( $obj, $col, $$val ) if ref $val && reftype $val eq 'SCALAR';
+        my $val = $basis->del_column( $obj, $col ); # это get + delete
         $row->{$col} = $val;
     }
 
