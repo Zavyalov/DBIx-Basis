@@ -226,7 +226,7 @@ sub insert {
 # Заменяет/вставляет новую запись в БД.
 # Возвращает объект, сконструированный из новой записи.
 sub replace {
-    my $self = shift;
+    my ($self, $cond) = @_;
     my $class = ref $self || $self;
 
     my $basis = $self->basis || DBIx::Basis->basis( $self->{data_basis} );
@@ -238,9 +238,22 @@ sub replace {
     croak "Can't replace object having no primary columns"
         unless @primary > 0;
 
-    my $cond = { map { $_ => $basis->get_column($self, $_) } @primary };
-    croak "All primary columns must be defined"
-        unless all { defined $_ } values %$cond;
+    # Если условие не передано, сгенерим его по primary-ключам
+    if ( !defined $cond && ref $self ) {
+        $cond = { map { $_ => $basis->get_column($self, $_) } @primary };
+        croak "All primary columns must be defined"
+            unless all { defined $_ } values %$cond;
+    }
+
+    croak "Condition required"
+        unless defined $cond;
+
+    unless ( defined wantarray ) {
+        unless ( DBIx::Basis::Handle->update_object( $basis->deflate($self), $cond, $basis ) ) {
+            DBIx::Basis::Handle->insert_object( $basis->deflate($self), $basis );
+        }
+        return;
+    }
 
     my $flat;
     unless ( $flat = DBIx::Basis::Handle->update_object( $basis->deflate($self), $cond, $basis ) ) {

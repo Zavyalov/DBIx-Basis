@@ -7,7 +7,7 @@ use Module::Find;
 
 use DBIx::Basis::Object;
 
-our $VERSION = '1.5';
+our $VERSION = '1.6';
 
 use strict;
 use warnings;
