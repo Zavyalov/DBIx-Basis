@@ -6,6 +6,7 @@ use List::Util qw( first );
 use List::MoreUtils qw( all );
 use Sub::Name;
 
+use DBI;
 use DBIx::Basis::Handle;
 require DBIx::Basis;
 
@@ -163,7 +164,7 @@ sub update {
     croak "Condition required"
         unless defined $cond;
 
-    if(defined wantarray) {
+    if ( defined wantarray ) {
         return $self->new( DBIx::Basis::Handle->update_object($basis->deflate($self), $cond, $basis, $columns) );
     }
 
@@ -215,7 +216,7 @@ sub insert {
 
     $basis->set_defaults($data);
 
-    if(defined wantarray) {
+    if ( defined wantarray ) {
         return $self->new( DBIx::Basis::Handle->insert_object($data, $basis) );
     }
 
@@ -248,19 +249,14 @@ sub replace {
     croak "Condition required"
         unless defined $cond;
 
-    unless ( defined wantarray ) {
-        unless ( DBIx::Basis::Handle->update_object( $basis->deflate($self), $cond, $basis ) ) {
-            DBIx::Basis::Handle->insert_object( $basis->deflate($self), $basis );
-        }
-        return;
+    if ( defined wantarray ) {
+        my $flat = DBIx::Basis::Handle->update_object( $basis->deflate($self), $cond, $basis );
+        return $self->new( defined $flat ? $flat : DBIx::Basis::Handle->insert_object( $basis->set_defaults( $basis->deflate($self) ), $basis ) );
     }
 
-    my $flat;
-    unless ( $flat = DBIx::Basis::Handle->update_object( $basis->deflate($self), $cond, $basis ) ) {
-        $flat = DBIx::Basis::Handle->insert_object( $basis->deflate($self), $basis );
-    }
-
-    return $self->new($flat);
+    DBIx::Basis::Handle->update_object( $basis->deflate($self), $cond, $basis );
+    DBIx::Basis::Handle->insert_object( $basis->set_defaults( $basis->deflate($self) ), $basis ) if $@ || $DBI::rows < 1;
+    return;
 }
 
 # Перехватывает обращения к аксессорам полей объекта.
