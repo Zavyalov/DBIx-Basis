@@ -227,8 +227,8 @@ sub insert_object {
     return unless defined wantarray;
 
     # Автозаполнение для 'auto_increment'-ных первичных ключей
-    $basis->set_column( $data_cond, @primary, $dbh->last_insert_id(undef, undef, $basis->table, undef) )
-        if @primary == 1 && !defined $basis->get_column( $data, @primary );
+    $basis->set_column( $data_cond, $primary[0], $dbh->last_insert_id(undef, undef, $basis->table, undef) )
+        if @primary == 1 && !defined $row->{ $primary[0] };
 
     return $self->select_object($data_cond, $basis)->[0];
 }

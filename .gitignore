@@ -1,7 +1,10 @@
 *.old
 *.bak
 META.yml
+MYMETA.json
+MYMETA.yml
 Makefile
 blib/
 inc/
 pm_to_blib
+DBIx-Basis-*.tar.gz
