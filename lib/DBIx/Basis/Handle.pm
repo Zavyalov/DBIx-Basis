@@ -69,8 +69,9 @@ sub connect {
         unless exists $CONFIG{$dbname};
 
     if ( !defined $DBH{$dbname} || !$self->ping($dbname) ) {
-        my ($url, $user, $pass, $attr) = @{$CONFIG{$dbname}};
+        my ($url, $user, $pass, $attr, $do) = @{$CONFIG{$dbname}};
         $attr ||= {};
+        $do   ||= [];
 
         $DBH{$dbname} = DBI->connect(
             $url, $user, $pass,
@@ -79,6 +80,8 @@ sub connect {
 
         croak("Can't connect to '$url' as '$user:$pass': ${DBI::errstr}")
             unless $DBH{$dbname};
+
+        $DBH{$dbname}->do($_) for @$do;
     }
 
     return $DBH{$dbname};
